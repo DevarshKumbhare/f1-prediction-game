@@ -1,0 +1,175 @@
+/* Base Styles - Already included */
+.app-container {
+  font-family: Arial, sans-serif;
+}
+
+.toggle-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px;
+}
+
+.toggle-button {
+  padding: 10px 20px;
+  margin: 0 5px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #f0f0f0;
+  color: #333;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.toggle-button.active {
+  background-color: #ff5722;
+  color: white;
+}
+
+/* Existing Prediction Page */
+.prediction-page {
+  text-align: center;
+  margin: 20px;
+}
+
+.prediction-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.prediction-container-horizontal {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 20px;
+}
+
+.prediction-card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  width: 200px;
+}
+
+.driver-image {
+  width: 100%;
+  border-radius: 10px;
+}
+
+.driver-select {
+  width: 100%;
+  margin-top: 10px;
+  padding: 5px;
+}
+
+/* Lock Button */
+.lock-button-container {
+  margin-top: 20px;
+}
+
+.lock-button {
+  padding: 10px 20px;
+  background-color: #ff5722;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* Circuit Layout */
+.circuit-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.circuit-image {
+  width: 100%;
+  max-width: 600px;
+  border-radius: 10px;
+}
+
+/* Leaderboard Page */
+.leaderboard-page {
+  text-align: center;
+  margin: 20px;
+}
+
+.leaderboard-container {
+  max-width: 400px;
+  margin: 0 auto;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 10px;
+  background-color: #f9f9f9;
+}
+
+.leaderboard-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.leaderboard-item:last-child {
+  border-bottom: none;
+}
+
+.top-user {
+  background-color: #ffe082;
+  font-weight: bold;
+}
+
+/* --- Responsive Design --- */
+
+/* Adjustments for Small Screens (Phones) */
+@media (max-width: 768px) {
+  .prediction-container-horizontal {
+      flex-direction: column;
+      gap: 15px;
+  }
+
+  .prediction-card {
+      width: 90%;
+      margin: 0 auto;
+  }
+
+  .toggle-container {
+      flex-direction: column;
+      gap: 10px;
+  }
+
+  .toggle-button {
+      width: 80%;
+      margin: 5px auto;
+  }
+
+  .circuit-image {
+      max-width: 100%;
+      border-radius: 10px;
+  }
+
+  .leaderboard-container {
+      width: 90%;
+      padding: 5px;
+  }
+}
+
+.lock-button.greyed-out {
+  background-color: #cccccc; /* Grey color */
+  color: #666666; /* Dark grey text */
+  cursor: not-allowed;
+}
+
+.locked-driver-display {
+  padding: 10px;
+  font-size: 14px;
+  text-align: center;
+  background-color: #f8f8f8;
+  border: 1px solid #dddddd;
+  border-radius: 5px;
+  color: #555555;
+}
