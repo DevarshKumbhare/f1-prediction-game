@@ -10,31 +10,90 @@ import { update } from 'firebase/database';
 const Home = () => {
     const { currentUser } = useAuth();
     const [activePage, setActivePage] = useState('Prediction');
+    const [username, setUsername] = useState('');
+    const [showUsernameModal, setShowUsernameModal] = useState(false);
+    const db = getDatabase();
 
-    const handleToggle = (page) => {
-        setActivePage(page);
+    // Check if username exists for the current user
+    useEffect(() => {
+        if (currentUser) {
+            const userScoresRef = ref(db, `scores/${currentUser.uid}`);
+            get(userScoresRef)
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        if (data.username) {
+                            setUsername(data.username);
+                        } else {
+                            setShowUsernameModal(true);
+                        }
+                    } else {
+                        setShowUsernameModal(true);
+                    }
+                })
+                .catch((error) => console.error('Error checking username:', error));
+        }
+    }, [currentUser, db]);
+
+    // Save the username to Firebase
+    const handleUsernameSave = async (newUsername) => {
+        if (currentUser) {
+            const userScoresRef = ref(db, `scores/${currentUser.uid}`);
+            try {
+                await set(userScoresRef, {
+                    username: newUsername,
+                    score1: 0,
+                    score2: 0,
+                });
+                setUsername(newUsername);
+                setShowUsernameModal(false);
+                console.log('Username saved successfully!');
+            } catch (error) {
+                console.error('Error saving username:', error);
+            }
+        }
     };
 
     return (
         <div className="app-container">
-            {/* Toggle Buttons */}
-            <div className="toggle-container">
-                <button
-                    className={`toggle-button ${activePage === 'Prediction' ? 'active' : ''}`}
-                    onClick={() => handleToggle('Prediction')}
-                >
-                    Prediction
-                </button>
-                <button
-                    className={`toggle-button ${activePage === 'Leaderboard' ? 'active' : ''}`}
-                    onClick={() => handleToggle('Leaderboard')}
-                >
-                    Leaderboard
-                </button>
-            </div>
+            {showUsernameModal && (
+                <div className="username-modal">
+                    <h2>Set Your Username</h2>
+                    <input
+                        type="text"
+                        placeholder="Here"
+                        onChange={(e) => setUsername(e.target.value)}
+                        value={username}
+                    />
+                    <button
+                        onClick={() => handleUsernameSave(username)}
+                        disabled={!username.trim()}
+                    >
+                        Save
+                    </button>
+                </div>
+            )}
 
-            {/* Conditional Rendering */}
-            {activePage === 'Prediction' ? <PredictionPage /> : <LeaderboardPage />}
+            {!showUsernameModal && (
+                <>
+                    <div className="toggle-container">
+                        <button
+                            className={`toggle-button ${activePage === 'Prediction' ? 'active' : ''}`}
+                            onClick={() => setActivePage('Prediction')}
+                        >
+                            Prediction
+                        </button>
+                        <button
+                            className={`toggle-button ${activePage === 'Leaderboard' ? 'active' : ''}`}
+                            onClick={() => setActivePage('Leaderboard')}
+                        >
+                            Leaderboard
+                        </button>
+                    </div>
+
+                    {activePage === 'Prediction' ? <PredictionPage /> : <LeaderboardPage />}
+                </>
+            )}
         </div>
     );
 };
@@ -49,19 +108,25 @@ const PredictionPage = () => {
     const db = getDatabase();
     const userId = currentUser?.uid;
 
-    // Fetch the next GP and set the raceVenue
+    // Fetch the next GP and set the raceVenue from Firebase Realtime Database
     useEffect(() => {
-        fetch('https://api.openf1.org/v1/meetings?year=2025')
-            .then(response => response.json())
-            .then(data => {
-                const currentDate = new Date();
-                const upcomingMeetings = data.filter(meeting => new Date(meeting.date_start) > currentDate);
-                const nextGP = upcomingMeetings.sort((a, b) => new Date(a.date_start) - new Date(b.date_start))[0];
-                setRaceVenue(nextGP.meeting_name);
-                console.log("Next GP:", nextGP.meeting_name);
-            })
-            .catch(error => setRaceVenue('Abu Dhabi'));
-    }, []);
+        const fetchRaceVenue = async () => {
+            const raceVenueRef = ref(db, 'Venue/GrandPrix');
+            const snapshot = await get(raceVenueRef);
+
+            if (snapshot.exists()) {
+                setRaceVenue(snapshot.val());
+                console.log("Next GP:", snapshot.val());
+            } else {
+                setRaceVenue('TBD');
+            }
+        };
+
+        fetchRaceVenue().catch(error => {
+            console.error('Error fetching race venue:', error);
+            setRaceVenue('TBD');
+        });
+    }, [db]);
 
     useEffect(() => {
         const fetchLockTime = async () => {
@@ -200,6 +265,7 @@ const PredictionPage = () => {
         </div>
     );
 };
+
 
 const LeaderboardPage = () => {
     const [leaderboard, setLeaderboard] = useState([]);
