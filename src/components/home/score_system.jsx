@@ -1,17 +1,50 @@
-export const calculateScore = (P1, P2, P3, top5Drivers) => {
-    let score1 = 0, score2 = 0;
+export const calculateScore = (startingGrid, gpPred, gpResult, sprint, multiplier, rno) => {
+    let score = 0;
+    let copyQualiResult = true;
+    let correctPlaces = 0;
+    const boldMultiplier = {
+        0: 1,
+        1: 1.15,
+        2: 1.4,
+        3: 1.9,
+        4: 2.5
+    };
 
-    // Assign points based on positions
-    if (P1 === top5Drivers[0]) score1 += 25; // Exact match for P1
-    if (P2 === top5Drivers[1]) score1 += 18; // Exact match for P2
-    if (P3 === top5Drivers[2]) score1 += 15; // Exact match for P3
+    //console.log(startingGrid, gpPred, gpResult, sprint, multiplier, rno);
 
-    // Bonus points for predicting any driver in the top 5
-    [P1, P2, P3].forEach(prediction => {
-        if (top5Drivers.includes(prediction)) {
-            score2 += 5; // Add 5 points for correct top-5 drivers
+    for (let i = 0; i < 3; i++) {
+        copyQualiResult &= (startingGrid[gpPred[i]] === i + 1);
+    }
+
+    for (let i = 0; i < 3; i++) {
+        if (!gpResult[gpPred[i]]) continue;
+
+        if (gpResult[gpPred[i]] === i + 1) {
+            correctPlaces++;
+            score += 4 * (sprint ? 1 : boldMultiplier[Math.floor((startingGrid[gpPred[i]] - 1) / 4)]);
+        } else if (Math.abs(gpResult[gpPred[i]] - (i + 1)) === 1) {
+            score += 2 * (sprint ? 1 : boldMultiplier[Math.floor((startingGrid[gpPred[i]] - 1) / 4)]);
         }
-    });
 
-    return { score1, score2 };
+        if (gpResult[gpPred[i]] <= 3) {
+            score += 4 * (sprint ? 1 : boldMultiplier[Math.floor((startingGrid[gpPred[i]] - 1) / 4)]);
+        }
+    }
+
+    if (correctPlaces === 2 && !sprint) score += 4;
+    if (correctPlaces === 3 && !sprint) {
+        score += 8;
+    }
+
+    score *= (copyQualiResult ? 0.8 : 1) * (sprint ? 0.5 : multiplier);
+    let newMultiplier = (rno === 1 || (rno % 3 === 2 & rno>3)) ? 1.75 : 1;
+    if (correctPlaces === 3 && !sprint)newMultiplier += 1;
+
+    if (!sprint) rno++;
+
+    return { score1: Math.round(score), score2: correctPlaces, newMultiplier, newRno: rno };
 };
+
+//1 1 1.75 1 1 1.75
+//0 1 2 3 4  5  6
+

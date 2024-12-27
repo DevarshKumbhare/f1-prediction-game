@@ -44,6 +44,9 @@ const Home = () => {
                     username: newUsername,
                     score1: 0,
                     score2: 0,
+                    multiplier: 1,
+                    rno: 0,
+                    cp: 0,
                 });
                 setUsername(newUsername);
                 setShowUsernameModal(false);
@@ -129,23 +132,37 @@ const PredictionPage = () => {
     }, [db]);
 
     useEffect(() => {
-        const fetchLockTime = async () => {
+        const fetchLockTimeAndSetRefresh = async () => {
             const lockTimeRef = ref(db, 'free');
             const snapshot = await get(lockTimeRef);
     
             if (snapshot.exists()) {
                 const lockTime = new Date(snapshot.val()); // Parse the lock time from DB
                 const currentTime = new Date();
+    
                 // Auto-lock predictions if the current time is past the lock time
                 if (currentTime > lockTime) {
-                    console.log("Predictions are locked automatically after the free time.");
                     setIsLocked(true);
+                    console.log("Predictions are locked automatically after the free time.");
+                } else {
+                    // Calculate time remaining until lock
+                    const timeRemaining = lockTime - currentTime;
+    
+                    // Schedule a page refresh at the lock time
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, timeRemaining);
+    
+                    console.log(`Page will refresh in ${timeRemaining / 1000} seconds.`);
                 }
             }
         };
     
-        fetchLockTime();
+        fetchLockTimeAndSetRefresh().catch((error) => {
+            console.error('Error fetching lock time:', error);
+        });
     }, [db]);
+    
     
     // Load existing prediction
     useEffect(() => {
@@ -277,85 +294,145 @@ const LeaderboardPage = () => {
                 const apiResultRef = ref(db, 'apiResult/result');
                 const apiResultSnapshot = await get(apiResultRef);
                 if (!apiResultSnapshot.exists()) return;
-    
-                const { GrandPrix, Top5Drivers } = apiResultSnapshot.val();
-    
+
+                const { GrandPrix, top5Drivers, sprint } = apiResultSnapshot.val();
+                if (!top5Drivers) {
+                    console.error('Top5Drivers data is missing');
+                    return;
+                }
+
+                console.log(sprint);
+
+                const Top5Drivers = Object.entries(top5Drivers).reduce((acc, [driver, position]) => {
+                    acc[driver] = position;
+                    return acc;
+                }, {});
+
+                const startingGridRef = ref(db, 'Starting Grid');
+                const startingGridSnapshot = await get(startingGridRef);
+                if (!startingGridSnapshot.exists()) return;
+
+                const s_grid = startingGridSnapshot.val();
+                if (!s_grid) {
+                    console.error('Starting Grid data is missing');
+                    return;
+                }
+
+                // Parsing the Starting Grid into the format we need (driver to position mapping)
+                const StartingGrid = Object.entries(s_grid).reduce((acc, [driver, position]) => {
+                    acc[driver] = position;
+                    return acc;
+                }, {});
+
                 const predictionsRef = ref(db, 'predictions');
                 const predictionsSnapshot = await get(predictionsRef);
                 if (!predictionsSnapshot.exists()) return;
-    
+
                 const predictions = predictionsSnapshot.val();
+                if (!predictions) {
+                    console.error('Predictions data is missing');
+                    return;
+                }
+
                 const scoresUpdates = {};
-    
+
                 for (const userId in predictions) {
                     const userPredictions = predictions[userId];
-                    
+
                     if (userPredictions[GrandPrix]) {
                         const { P1, P2, P3 } = userPredictions[GrandPrix];
-    
-                        // Calculate scores
-                        const { score1, score2 } = calculateScore(P1, P2, P3, Top5Drivers);
-    
+                        const gpPred = [P1, P2, P3];
+
                         // Fetch current user scores
                         const userScoresRef = ref(db, `scores/${userId}`);
                         const userSnapshot = await get(userScoresRef);
-    
-                        let currentScores = { score1: 0, score2: 0, username: `User_${userId.slice(-4)}` };
+
+                        let currentScores = {
+                            score1: 0,
+                            score2: 0,
+                            cp: 0,
+                            multiplier: 1,
+                            rno: 0,
+                            username: `User_${userId.slice(-4)}`
+                        };
+
                         if (userSnapshot.exists()) {
                             currentScores = userSnapshot.val();
                         }
-    
-                        // Increment scores
+
+                        // Calculate scores
+                        const { score1, score2, newMultiplier, newRno } = calculateScore(
+                            StartingGrid,
+                            gpPred,
+                            Top5Drivers,
+                            sprint,
+                            currentScores.multiplier,
+                            currentScores.rno
+                        );
+
+                        // Update scores
                         scoresUpdates[userId] = {
                             score1: currentScores.score1 + score1,
                             score2: currentScores.score2 + score2,
+                            cp: currentScores.cp + 1, // Assuming cp increments per prediction
+                            multiplier: newMultiplier,
+                            rno: newRno,
                             username: currentScores.username
                         };
-    
+
                         // Rename the prediction key to append '_done'
                         const predictionRef = ref(db, `predictions/${userId}`);
                         const updatedPredictionKey = `${GrandPrix}_done`;
-    
+
                         await update(predictionRef, {
                             [updatedPredictionKey]: userPredictions[GrandPrix],
                         });
-    
+
                         // Remove the old prediction key
                         await update(predictionRef, { [GrandPrix]: null });
                     }
                 }
-    
+
                 // Push updated scores
                 for (const userId in scoresUpdates) {
                     await update(ref(db, `scores/${userId}`), scoresUpdates[userId]);
                 }
-    
+
                 // Fetch and display updated leaderboard
                 const scoresRef = ref(db, 'scores');
                 const updatedScoresSnapshot = await get(scoresRef);
-    
+
                 if (updatedScoresSnapshot.exists()) {
                     const scoresData = updatedScoresSnapshot.val();
                     const leaderboardData = Object.keys(scoresData).map(userId => ({
                         username: scoresData[userId].username,
                         score1: scoresData[userId].score1,
                         score2: scoresData[userId].score2,
+                        cp: scoresData[userId].cp,
+                        rno: scoresData[userId].rno,
                     }));
-    
+
                     leaderboardData.sort((a, b) => {
-                        if (b.score1 === a.score1) return b.score2 - a.score2;
+                        if (b.score1 === a.score1) {
+                            if (b.score2 === a.score2) {
+                                return b.cp - a.cp; // Tie-breaker by cp
+                            }
+                            return b.score2 - a.score2;
+                        }
                         return b.score1 - a.score1;
                     });
-    
+
                     setLeaderboard(leaderboardData);
                 }
             } catch (error) {
                 console.error('Error updating leaderboard:', error);
             }
         };
-    
+
         fetchLatestScores();
     }, [db]);
+
+
     
 
     return (
