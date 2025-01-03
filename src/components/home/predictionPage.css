@@ -1,0 +1,82 @@
+.venue-and-clock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+/* Race Venue Styling */
+.race-venue {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: black; /* White text fill */
+    /*-webkit-text-stroke: 2px black; /* Orange text border */
+    text-align: center;
+    display: inline-block; /* Prevents full-width stretching */
+}
+
+
+/* Clock Section Styling */
+.countdown-clock {
+    display: flex;
+    justify-content: center; /* Center horizontally */
+    align-items: center; /* Align items in the middle vertically */
+    gap: 10px; /* Add some spacing between time segments */
+    margin: 20px auto; /* Center the section vertically and horizontally */
+    width: fit-content; /* Shrinks the container to its content */
+    /*border: 2px solid rgba(0, 0, 0, 0.6); /* Add a border if needed for visual distinction */
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.6); /* Optional: Semi-transparent background */
+    border-radius: 10px;
+}
+
+.time-segment {
+    text-align: center;
+}
+
+.time-value {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white; /* Matches the theme */
+}
+
+.time-label {
+    font-size: 0.8rem;
+    color: white;
+    text-transform: uppercase;
+}
+
+.clock-message {
+    font-size: 1.2rem;
+    color: #777;
+}
+
+.prediction-section {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.predictions-list {
+    list-style: none;
+    padding: 0;
+}
+
+.predictions-list li {
+    font-size: 1.1rem;
+    margin: 5px 0;
+}
+
+.circuit-section {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.circuit-section h2 {
+    margin-bottom: 10px;
+}

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import './home.css'; // Move App.css content here
+import './home.css'; // Ensure the icons are styled correctly
 import { useAuth } from '../../context/authcontext';
 import { getDatabase, ref, set, get } from 'firebase/database';
-import { calculateScore } from './score_system'; 
+import { calculateScore } from './score_system';
 import { update } from 'firebase/database';
-//import { processUserPredictions } from '../..utils/process_predictions';
-
+import './predictionPage.css';
+import '@fortawesome/fontawesome-free/css/all.min.css'; // Font Awesome
 
 const Home = () => {
     const { currentUser } = useAuth();
@@ -97,9 +97,11 @@ const Home = () => {
                     {activePage === 'Prediction' ? <PredictionPage /> : <LeaderboardPage />}
                 </>
             )}
+
         </div>
     );
 };
+
 
 const PredictionPage = () => {
     const { currentUser } = useAuth();
@@ -107,6 +109,7 @@ const PredictionPage = () => {
     const [selectedDrivers, setSelectedDrivers] = useState({ P1: '', P2: '', P3: '' });
     const [raceVenue, setRaceVenue] = useState(''); // Default to empty, fetched dynamically
     const [isLocked, setIsLocked] = useState(false);
+    const [timeRemaining, setTimeRemaining] = useState(null); // Countdown state
 
     const db = getDatabase();
     const userId = currentUser?.uid;
@@ -131,39 +134,40 @@ const PredictionPage = () => {
         });
     }, [db]);
 
+    // Fetch lock time and calculate countdown
     useEffect(() => {
-        const fetchLockTimeAndSetRefresh = async () => {
+        const fetchLockTimeAndSetCountdown = async () => {
             const lockTimeRef = ref(db, 'free');
             const snapshot = await get(lockTimeRef);
-    
+
             if (snapshot.exists()) {
-                const lockTime = new Date(snapshot.val()); // Parse the lock time from DB
-                const currentTime = new Date();
-    
-                // Auto-lock predictions if the current time is past the lock time
-                if (currentTime > lockTime) {
-                    setIsLocked(true);
-                    console.log("Predictions are locked automatically after the free time.");
-                } else {
-                    // Calculate time remaining until lock
-                    const timeRemaining = lockTime - currentTime;
-    
-                    // Schedule a page refresh at the lock time
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, timeRemaining);
-    
-                    console.log(`Page will refresh in ${timeRemaining / 1000} seconds.`);
-                }
+                const lockTime = new Date(snapshot.val());
+                const updateCountdown = () => {
+                    const now = new Date();
+                    const diff = lockTime - now;
+
+                    if (diff > 0) {
+                        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                        setTimeRemaining({ days, hours, minutes, seconds });
+                    } else {
+                        setTimeRemaining(null); // Countdown over
+                        setIsLocked(true); // Lock predictions when time runs out
+                    }
+                };
+
+                updateCountdown();
+                const intervalId = setInterval(updateCountdown, 1000);
+
+                return () => clearInterval(intervalId); // Cleanup on unmount
             }
         };
-    
-        fetchLockTimeAndSetRefresh().catch((error) => {
-            console.error('Error fetching lock time:', error);
-        });
+
+        fetchLockTimeAndSetCountdown().catch(error => console.error('Error fetching lock time:', error));
     }, [db]);
-    
-    
+
     // Load existing prediction
     useEffect(() => {
         if (userId && raceVenue) {
@@ -183,7 +187,6 @@ const PredictionPage = () => {
                 .catch((error) => console.error('Error loading prediction:', error));
         }
     }, [userId, raceVenue]);
-    
 
     const handleDriverSelect = (position, driver) => {
         if (!isLocked) {
@@ -222,7 +225,35 @@ const PredictionPage = () => {
 
     return (
         <div className="prediction-page">
-            <h1 className="race-venue">{raceVenue || 'Loading...'}</h1>
+            <div className="race-header">
+    {/* Race Venue */}
+    <h1 className="race-venue">{raceVenue || 'Loading...'}</h1>
+
+    {/* Countdown Clock */}
+    {timeRemaining ? (
+        <div className="countdown-clock">
+            <div className="time-segment">
+                <span className="time-value">{timeRemaining.days}</span>
+                <span className="time-label">Days</span>
+            </div>
+            <div className="time-segment">
+                <span className="time-value">{timeRemaining.hours}</span>
+                <span className="time-label">Hrs</span>
+            </div>
+            <div className="time-segment">
+                <span className="time-value">{timeRemaining.minutes}</span>
+                <span className="time-label">Mins</span>
+            </div>
+            <div className="time-segment">
+                <span className="time-value">{timeRemaining.seconds}</span>
+                <span className="time-label">Secs</span>
+            </div>
+        </div>
+    ) : (
+        <p className="clock-message">Predictions are locked!</p>
+    )}
+</div>
+
 
             <div className="prediction-layout">
                 {/* Prediction Cards */}
@@ -278,10 +309,13 @@ const PredictionPage = () => {
                         className="circuit-image"
                     />
                 </div>
+
+                
             </div>
         </div>
     );
 };
+
 
 
 const LeaderboardPage = () => {
@@ -448,6 +482,34 @@ const LeaderboardPage = () => {
                         <span>{user.score1} pts</span>
                     </div>
                 ))}
+            </div>
+
+            {/* Social Media Icons */}
+            <div className="social-icons">
+                {/* <a
+                    href="https://www.linkedin.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="social-icon"
+                >
+                    <i className="fab fa-linkedin"></i>
+                </a>
+                <a
+                    href="https://www.instagram.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="social-icon"
+                >
+                    <i className="fab fa-instagram"></i>
+                </a> */}
+                <a
+                    href="https://drive.google.com/file/d/1Kj_cQUuR4wzSAVFmuopUa8UQQZm7S5bB/view?usp=sharing"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="social-icon"
+                >
+                    <i className="fas fa-link"></i>
+                </a>
             </div>
         </div>
     );

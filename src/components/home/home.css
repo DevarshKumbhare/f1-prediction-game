@@ -207,3 +207,32 @@
   background-color: #ccc;
   cursor: not-allowed;
 }
+
+.social-icons {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.social-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  background-color: #333;
+  color: #fff;
+  text-decoration: none;
+  font-size: 18px;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.social-icon:hover {
+  background-color: #555;
+  transform: scale(1.1);
+}
+

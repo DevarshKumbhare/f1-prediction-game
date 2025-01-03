@@ -11,7 +11,6 @@ export const calculateScore = (startingGrid, gpPred, gpResult, sprint, multiplie
     };
 
     //console.log(startingGrid, gpPred, gpResult, sprint, multiplier, rno);
-
     for (let i = 0; i < 3; i++) {
         copyQualiResult &= (startingGrid[gpPred[i]] === i + 1);
     }
