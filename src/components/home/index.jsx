@@ -190,9 +190,20 @@ const PredictionPage = () => {
 
     const handleDriverSelect = (position, driver) => {
         if (!isLocked) {
-            setSelectedDrivers((prev) => ({ ...prev, [position]: driver }));
+            setSelectedDrivers((prev) => {
+                const updated = { ...prev, [position]: driver };
+                return updated;
+            });
         }
     };
+    
+    const getAvailableDrivers = (currentPosition) => {
+        const usedDrivers = Object.entries(selectedDrivers)
+            .filter(([key, value]) => key !== currentPosition && value) // Exclude the current position
+            .map(([, value]) => value); // Get selected drivers for other positions
+        return drivers.filter((driver) => !usedDrivers.includes(driver)); // Exclude already selected drivers
+    };
+    
 
     const handleLock = async () => {
         if (!isLocked && userId) {
@@ -272,18 +283,19 @@ const PredictionPage = () => {
                                 </div>
                             ) : (
                                 <select
-                                    className="driver-select"
-                                    value={selectedDrivers[position]}
-                                    onChange={(e) => handleDriverSelect(position, e.target.value)}
-                                    disabled={isLocked}
-                                >
-                                    <option value="">Select Driver</option>
-                                    {drivers.map((driver, idx) => (
-                                        <option key={idx} value={driver}>
-                                            {driver}
-                                        </option>
-                                    ))}
-                                </select>
+                                className="driver-select"
+                                value={selectedDrivers[position]}
+                                onChange={(e) => handleDriverSelect(position, e.target.value)}
+                                disabled={isLocked}
+                            >
+                                <option value="">Select Driver</option>
+                                {getAvailableDrivers(position).map((driver, idx) => (
+                                    <option key={idx} value={driver}>
+                                        {driver}
+                                    </option>
+                                ))}
+                            </select>
+
                             )}
                         </div>
                     ))}
