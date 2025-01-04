@@ -493,15 +493,7 @@ const LeaderboardPage = () => {
                     className="social-icon"
                 >
                     <i className="fab fa-linkedin"></i>
-                </a>
-                <a
-                    href="https://www.instagram.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="social-icon"
-                >
-                    <i className="fab fa-instagram"></i>
-                </a> */}
+                </a>*/}
                 <a
                     href="https://drive.google.com/file/d/1Kj_cQUuR4wzSAVFmuopUa8UQQZm7S5bB/view?usp=sharing"
                     target="_blank"
@@ -510,6 +502,14 @@ const LeaderboardPage = () => {
                 >
                     <i className="fas fa-link"></i>
                 </a>
+                <a
+                    href="https://github.com/DevarshKumbhare"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="social-icon"
+                >
+                    <i className="fab fa-github"></i>
+                </a> 
             </div>
         </div>
     );
