@@ -105,7 +105,7 @@ const Home = () => {
 
 const PredictionPage = () => {
     const { currentUser } = useAuth();
-    const drivers = ['Max Verstappen', 'Lando Norris', 'Charles Leclerc', 'Oscar Piastri', 'Carlos Sainz', 'George Russell', 'Lewis Hamilton', 'Fernando Alonso', 'Pierre Gasly', 'Nico Hulkenberg', 'Yuki Tsunoda', 'Lance Stroll', 'Esteban Ocon', 'Alexander Albon', 'Oliver Bearman', 'Liam Lawson', 'Jack Doohan', 'Kimi Antonelli', 'Gabriel Bortoleto'];
+    const drivers = ['Max Verstappen', 'Lando Norris', 'Charles Leclerc', 'Oscar Piastri', 'Carlos Sainz', 'George Russell', 'Lewis Hamilton', 'Fernando Alonso', 'Pierre Gasly', 'Nico Hulkenberg', 'Yuki Tsunoda', 'Lance Stroll', 'Esteban Ocon', 'Alexander Albon', 'Oliver Bearman', 'Liam Lawson', 'Jack Doohan', 'Kimi Antonelli', 'Gabriel Bortoleto', 'Isack Hadjar'];
     const [selectedDrivers, setSelectedDrivers] = useState({ P1: '', P2: '', P3: '' });
     const [raceVenue, setRaceVenue] = useState(''); // Default to empty, fetched dynamically
     const [isLocked, setIsLocked] = useState(false);
