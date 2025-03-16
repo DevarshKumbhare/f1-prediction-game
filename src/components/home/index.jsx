@@ -7,6 +7,14 @@ import { update } from 'firebase/database';
 import './predictionPage.css';
 import '@fortawesome/fontawesome-free/css/all.min.css'; // Font Awesome
 
+const driverInitials = {
+    'Max Verstappen': 'VER', 'Lando Norris': 'NOR', 'Charles Leclerc': 'LEC', 'Oscar Piastri': 'PIA',
+    'Carlos Sainz': 'SAI', 'George Russell': 'RUS', 'Lewis Hamilton': 'HAM', 'Fernando Alonso': 'ALO',
+    'Pierre Gasly': 'GAS', 'Nico Hulkenberg': 'HUL', 'Yuki Tsunoda': 'TSU', 'Lance Stroll': 'STR',
+    'Esteban Ocon': 'OCO', 'Alexander Albon': 'ALB', 'Oliver Bearman': 'BEA', 'Liam Lawson': 'LAW',
+    'Jack Doohan': 'DOO', 'Kimi Antonelli': 'ANT', 'Gabriel Bortoleto': 'BOR', 'Isack Hadjar': 'HAD'
+};
+
 const Home = () => {
     const { currentUser } = useAuth();
     const [activePage, setActivePage] = useState('Prediction');
@@ -332,196 +340,77 @@ const PredictionPage = () => {
 
 const LeaderboardPage = () => {
     const [leaderboard, setLeaderboard] = useState([]);
+    const [raceVenue, setRaceVenue] = useState('');
     const db = getDatabase();
 
     useEffect(() => {
-        const fetchLatestScores = async () => {
-            try {
-                const apiResultRef = ref(db, 'apiResult/result');
-                const apiResultSnapshot = await get(apiResultRef);
-                if (!apiResultSnapshot.exists()) return;
-
-                const { GrandPrix, top5Drivers, sprint } = apiResultSnapshot.val();
-                if (!top5Drivers) {
-                    console.error('Top5Drivers data is missing');
-                    return;
-                }
-
-                console.log(sprint);
-
-                const Top5Drivers = Object.entries(top5Drivers).reduce((acc, [driver, position]) => {
-                    acc[driver] = position;
-                    return acc;
-                }, {});
-
-                const startingGridRef = ref(db, 'Starting Grid');
-                const startingGridSnapshot = await get(startingGridRef);
-                if (!startingGridSnapshot.exists()) return;
-
-                const s_grid = startingGridSnapshot.val();
-                if (!s_grid) {
-                    console.error('Starting Grid data is missing');
-                    return;
-                }
-
-                // Parsing the Starting Grid into the format we need (driver to position mapping)
-                const StartingGrid = Object.entries(s_grid).reduce((acc, [driver, position]) => {
-                    acc[driver] = position;
-                    return acc;
-                }, {});
-
-                const predictionsRef = ref(db, 'predictions');
-                const predictionsSnapshot = await get(predictionsRef);
-                if (!predictionsSnapshot.exists()) return;
-
-                const predictions = predictionsSnapshot.val();
-                if (!predictions) {
-                    console.error('Predictions data is missing');
-                    return;
-                }
-
-                const scoresUpdates = {};
-
-                for (const userId in predictions) {
-                    const userPredictions = predictions[userId];
-
-                    if (userPredictions[GrandPrix]) {
-                        const { P1, P2, P3 } = userPredictions[GrandPrix];
-                        const gpPred = [P1, P2, P3];
-
-                        // Fetch current user scores
-                        const userScoresRef = ref(db, `scores/${userId}`);
-                        const userSnapshot = await get(userScoresRef);
-
-                        let currentScores = {
-                            score1: 0,
-                            score2: 0,
-                            cp: 0,
-                            multiplier: 1,
-                            rno: 0,
-                            username: `User_${userId.slice(-4)}`
-                        };
-
-                        if (userSnapshot.exists()) {
-                            currentScores = userSnapshot.val();
-                        }
-
-                        // Calculate scores
-                        const { score1, score2, newMultiplier, newRno } = calculateScore(
-                            StartingGrid,
-                            gpPred,
-                            Top5Drivers,
-                            sprint,
-                            currentScores.multiplier,
-                            currentScores.rno
-                        );
-
-                        // Update scores
-                        scoresUpdates[userId] = {
-                            score1: currentScores.score1 + score1,
-                            score2: currentScores.score2 + score2,
-                            cp: currentScores.cp + 1, // Assuming cp increments per prediction
-                            multiplier: newMultiplier,
-                            rno: newRno,
-                            username: currentScores.username
-                        };
-
-                        // Rename the prediction key to append '_done'
-                        const predictionRef = ref(db, `predictions/${userId}`);
-                        const updatedPredictionKey = `${GrandPrix}_done`;
-
-                        await update(predictionRef, {
-                            [updatedPredictionKey]: userPredictions[GrandPrix],
-                        });
-
-                        // Remove the old prediction key
-                        await update(predictionRef, { [GrandPrix]: null });
-                    }
-                }
-
-                // Push updated scores
-                for (const userId in scoresUpdates) {
-                    await update(ref(db, `scores/${userId}`), scoresUpdates[userId]);
-                }
-
-                // Fetch and display updated leaderboard
-                const scoresRef = ref(db, 'scores');
-                const updatedScoresSnapshot = await get(scoresRef);
-
-                if (updatedScoresSnapshot.exists()) {
-                    const scoresData = updatedScoresSnapshot.val();
-                    const leaderboardData = Object.keys(scoresData).map(userId => ({
-                        username: scoresData[userId].username,
-                        score1: scoresData[userId].score1,
-                        score2: scoresData[userId].score2,
-                        cp: scoresData[userId].cp,
-                        rno: scoresData[userId].rno,
-                    }));
-
-                    leaderboardData.sort((a, b) => {
-                        if (b.score1 === a.score1) {
-                            if (b.score2 === a.score2) {
-                                return b.cp - a.cp; // Tie-breaker by cp
-                            }
-                            return b.score2 - a.score2;
-                        }
-                        return b.score1 - a.score1;
-                    });
-
-                    setLeaderboard(leaderboardData);
-                }
-            } catch (error) {
-                console.error('Error updating leaderboard:', error);
+        const fetchRaceVenue = async () => {
+            const raceVenueRef = ref(db, 'Venue/GrandPrix');
+            const snapshot = await get(raceVenueRef);
+            if (snapshot.exists()) {
+                setRaceVenue(snapshot.val());
+            } else {
+                setRaceVenue('TBD');
             }
         };
 
-        fetchLatestScores();
+        fetchRaceVenue().catch(error => console.error('Error fetching race venue:', error));
     }, [db]);
 
+    useEffect(() => {
+        const fetchLeaderboard = async () => {
+            try {
+                const scoresRef = ref(db, 'scores');
+                const scoresSnapshot = await get(scoresRef);
+                if (!scoresSnapshot.exists()) return;
 
-    
+                const scoresData = scoresSnapshot.val();
+                const leaderboardData = await Promise.all(
+                    Object.keys(scoresData).map(async (userId) => {
+                        const userPredictionsRef = ref(db, `predictions/${userId}/${raceVenue}`);
+                        const userPredictionsSnapshot = await get(userPredictionsRef);
+                        const predictions = userPredictionsSnapshot.exists() ? userPredictionsSnapshot.val() : null;
+
+                        return {
+                            username: scoresData[userId].username,
+                            score1: scoresData[userId].score1,
+                            score2: scoresData[userId].score2,
+                            cp: scoresData[userId].cp,
+                            rno: scoresData[userId].rno,
+                            predictions,
+                        };
+                    })
+                );
+
+                leaderboardData.sort((a, b) => b.score1 - a.score1 || b.score2 - a.score2 || b.cp - a.cp);
+                setLeaderboard(leaderboardData);
+            } catch (error) {
+                console.error('Error fetching leaderboard:', error);
+            }
+        };
+
+        if (raceVenue) {
+            fetchLeaderboard();
+        }
+    }, [db, raceVenue]);
 
     return (
         <div className="leaderboard-page">
             <h1>Leaderboard</h1>
             <div className="leaderboard-container">
                 {leaderboard.map((user, index) => (
-                    <div
-                        key={index}
-                        className={`leaderboard-item ${index === 0 ? 'top-user' : ''}`}
-                    >
+                    <div key={index} className={`leaderboard-item ${index === 0 ? 'top-user' : ''}`}>
                         <span>{index + 1}. {user.username}</span>
+                        {user.predictions ? (
+                            <span className="prediction-info">
+                               [{driverInitials[user.predictions.P1]}, {driverInitials[user.predictions.P2]}, {driverInitials[user.predictions.P3]}]
+                            </span>
+                        ) : (
+                            <span className="no-prediction"></span>
+                        )}
                         <span>{user.score1} pts</span>
                     </div>
                 ))}
-            </div>
-
-            {/* Social Media Icons */}
-            <div className="social-icons">
-                {/* <a
-                    href="https://www.linkedin.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="social-icon"
-                >
-                    <i className="fab fa-linkedin"></i>
-                </a>*/}
-                <a
-                    href="https://drive.google.com/file/d/1Kj_cQUuR4wzSAVFmuopUa8UQQZm7S5bB/view?usp=sharing"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="social-icon"
-                >
-                    <i className="fas fa-link"></i>
-                </a>
-                <a
-                    href="https://github.com/DevarshKumbhare"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="social-icon"
-                >
-                    <i className="fab fa-github"></i>
-                </a> 
             </div>
         </div>
     );
