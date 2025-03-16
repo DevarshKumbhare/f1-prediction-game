@@ -316,7 +316,7 @@ const PredictionPage = () => {
                 <div className="circuit-layout">
                     <h2>Circuit Layout</h2>
                     <img
-                        src={`/circuits/${raceVenue === 'TBD' ? 'placeholder-circuit' : raceVenue}.avif`}
+                        src={`/circuits/${raceVenue === 'TBD' ? 'placeholder-circuit' : raceVenue}.png`}
                         alt="Loading..."
                         className="circuit-image"
                     />
